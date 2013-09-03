@@ -26,6 +26,26 @@ except ImportError:
 # - Fall back to urllib2 with a warning if needed
 _httplib = None
 
+"""
+" Do a test. If the user has the environment HTTP_PROXY and HTTPS_PROXY 
+" environment variables set, assume they are wanting to use curl, which does
+" not use urllib3 and, thus, does not have the proxy bug.
+"
+" See https://github.com/kennethreitz/requests/issues/905 for a description
+" of the issue.
+"""
+proxy = os.getenv('HTTPS_PROXY', os.getenv('HTTP_PROXY', None))
+if proxy is not None:
+    _httplib = 'pycurl'
+    try:
+        import pycurl
+    except ImportError as e:
+        print >>sys.stderr, ("Warning: It appears as though you have" +
+            " proxy variables set in your environment, but you do not have" +
+            " pycurl installed. It's recommended you use pycurl if you " + 
+            " are behind a proxy or you may have connection problems.")
+        _httplib = None
+
 try:
   from google.appengine.api import urlfetch
   _httplib = 'urlfetch'
@@ -326,14 +346,21 @@ class APIRequestor(object):
     try:
       try:
         from os import getenv
+        import logging
+        #logging.basicConfig(level=logging.DEBUG)
+        """
+        " There's a bug with Tor, Privoxy, and python-requests. Try to
+        " force HTTP proxy anyway with the environment variables.
+        """
         proxy_dict = {
-                'http': getenv('HTTP_PROXY', None),
-                'https': getenv('HTTPS_PROXY', None),
-                'ftp': getenv('FTP_PROXY', None),
-                }
+            'http':     getenv('HTTP_PROXY', None),
+            'https':    getenv('HTTPS_PROXY', None),
+            'ftp':      getenv('FTP_PROXY', None),
+        }
+        logging.debug('requests with proxy_dict: %s'%(proxy_dict))
         result = requests.request(meth, abs_url,
                                   headers=headers, data=data, timeout=80,
-                                  proxy=proxy_dict,
+                                  proxies=proxy_dict,
                                   **kwargs)
       except TypeError, e:
         raise TypeError('Warning: It looks like your installed version of the "requests" library is not compatible with Stripe\'s usage thereof. (HINT: The most likely cause is that your "requests" library is out of date. You can fix that by running "pip install -U requests".) The underlying error was: %s' %(e, ))
