@@ -11,7 +11,7 @@ import stripe
 
 logger = logging.getLogger('')
 logger.addHandler(logging.StreamHandler(sys.stderr))
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 class APIResourceClient(object):
   def __init__(self, id=None):

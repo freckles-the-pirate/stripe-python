@@ -325,8 +325,15 @@ class APIRequestor(object):
 
     try:
       try:
+        from os import getenv
+        proxy_dict = {
+                'http': getenv('HTTP_PROXY', None),
+                'https': getenv('HTTPS_PROXY', None),
+                'ftp': getenv('FTP_PROXY', None),
+                }
         result = requests.request(meth, abs_url,
                                   headers=headers, data=data, timeout=80,
+                                  proxy=proxy_dict,
                                   **kwargs)
       except TypeError, e:
         raise TypeError('Warning: It looks like your installed version of the "requests" library is not compatible with Stripe\'s usage thereof. (HINT: The most likely cause is that your "requests" library is out of date. You can fix that by running "pip install -U requests".) The underlying error was: %s' %(e, ))
